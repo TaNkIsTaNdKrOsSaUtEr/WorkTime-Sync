@@ -1,0 +1,14 @@
+<!-- WorkTimeSync/templates/hr_dashboard.html -->
+{% extends "base.html" %}
+{% block content %}
+<h2>HR-дашборд</h2>
+<div class="row">
+  <div class="col-md-8">
+    {{ graph_html | safe }}
+  </div>
+  <div class="col-md-4">
+    <a href="/hr/export" class="btn btn-primary">Экспорт в Excel</a>
+  </div>
+</div>
+{% endblock %}
+

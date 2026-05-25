@@ -1,0 +1,32 @@
+<!-- WorkTimeSync/templates/recommendations.html -->
+{% extends "base.html" %}
+{% block content %}
+<h2>Рекомендации по балансировке</h2>
+
+{% if recommendations %}
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>От кого</th>
+            <th>Кому</th>
+            <th>Часы</th>
+            <th>Дата предложения</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for rec in recommendations %}
+        <tr>
+            <td>{{ users[rec.from_user_id].full_name if rec.from_user_id in users else '??' }}</td>
+            <td>{{ users[rec.to_user_id].full_name if rec.to_user_id in users else '??' }}</td>
+            <td>{{ rec.hours }}</td>
+            <td>{{ rec.suggested_date }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="alert alert-info">Пока нет рекомендаций. Запустите балансировку.</div>
+{% endif %}
+
+<a href="/dashboard/manager" class="btn btn-primary">Вернуться к дашборду</a>
+{% endblock %}

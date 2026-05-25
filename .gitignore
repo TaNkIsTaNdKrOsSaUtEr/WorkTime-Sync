@@ -1,0 +1,15 @@
+# Виртуальное окружение
+venv/
+
+# Кэш Python
+__pycache__/
+*.pyc
+*.pyo
+
+# База данных (локальная)
+worktime.db
+
+# Временные файлы
+*.log
+.DS_Store
+Thumbs.db

@@ -1,0 +1,65 @@
+<!-- WorkTimeSync/templates/absences.html -->
+{% extends "base.html" %}
+{% block content %}
+<h2>Запросы на отсутствие</h2>
+{% if user.role.value == 'employee' %}
+<div class="card mb-4">
+  <div class="card-body">
+    <form method="post" action="/absences/create">
+      <div class="row g-3">
+        <div class="col-auto">
+          <label>С даты</label>
+          <input type="date" name="date_from" class="form-control" required>
+        </div>
+        <div class="col-auto">
+          <label>По дату</label>
+          <input type="date" name="date_to" class="form-control" required>
+        </div>
+        <div class="col-auto">
+          <label>Тип</label>
+          <select name="absence_type" class="form-select">
+            <option value="vacation">Отпуск</option>
+            <option value="sick">Больничный</option>
+          </select>
+        </div>
+        <div class="col-auto align-self-end">
+          <button type="submit" class="btn btn-primary">Отправить</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+<table class="table">
+  <thead>
+    <tr>
+      <th>Сотрудник</th>
+      <th>С даты</th>
+      <th>По дату</th>
+      <th>Тип</th>
+      <th>Статус</th>
+      {% if user.role.value == 'manager' %}<th>Действия</th>{% endif %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for absence in absences %}
+    <tr>
+      <td>{{ users[absence.user_id].full_name if absence.user_id in users else '??' }}</td>
+      <td>{{ absence.date_from }}</td>
+      <td>{{ absence.date_to }}</td>
+      <td>{{ absence.type.value }}</td>
+      <td>{{ absence.status.value }}</td>
+      {% if user.role.value == 'manager' and absence.status.value == 'pending' %}
+      <td>
+        <a href="/absences/{{ absence.id }}/approve" class="btn btn-sm btn-success">Утвердить</a>
+        <a href="/absences/{{ absence.id }}/reject" class="btn btn-sm btn-danger">Отклонить</a>
+      </td>
+      {% else %}
+      <td>—</td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
+

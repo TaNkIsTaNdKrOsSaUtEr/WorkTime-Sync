@@ -1,0 +1,34 @@
+<!-- WorkTimeSync/templates/projects.html -->
+{% extends "base.html" %}
+{% block content %}
+<h2>Проекты</h2>
+{% if user.role.value == 'manager' %}
+<form method="post" action="/projects/create" class="row g-3 mb-4">
+  <div class="col-auto">
+    <input type="text" class="form-control" name="name" placeholder="Название проекта" required>
+  </div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-success">Создать</button>
+  </div>
+</form>
+{% endif %}
+<table class="table">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Название</th>
+      <th>Руководитель</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for project in projects %}
+    <tr>
+      <td>{{ project.id }}</td>
+      <td>{{ project.name }}</td>
+      <td>{{ project.manager.full_name if project.manager else '—' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
+
