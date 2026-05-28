@@ -1,0 +1,48 @@
+# WorkTimeSync/.github/workflows/ci.yml
+name: WorkTime Sync CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12"]   # можно добавить 3.13, если нужно
+
+    steps:
+      - name: Checkout репозитория
+        uses: actions/checkout@v4
+
+      - name: Установка Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Установка зависимостей
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest httpx
+
+      - name: Запуск тестов
+        run: |
+          pytest tests/ -v --tb=short --ignore=tests/test_api.py  # сервисные тесты
+          # Для API-тестов нужна база, поэтому запускаем их отдельно с подготовкой
+          python init_db.py
+          python fill_demo_data.py
+          pytest tests/test_api.py -v --tb=short
+
+  docker-build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout репозитория
+        uses: actions/checkout@v4
+
+      - name: Сборка Docker-образа
+        run: docker build -t worktime-sync .
