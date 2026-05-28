@@ -1,0 +1,12 @@
+# WorkTimeSync/docker-compose.yml
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: worktime-sync
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./worktime.db:/app/worktime.db   # сохраняем базу вне контейнера
+    restart: unless-stopped

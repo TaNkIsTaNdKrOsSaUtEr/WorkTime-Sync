@@ -1,0 +1,16 @@
+# WorkTimeSync/.dockerignore
+venv/
+__pycache__/
+*.pyc
+*.pyo
+worktime.db
+test*.db
+*.log
+.DS_Store
+Thumbs.db
+.git/
+.gitignore
+*.md   # можно оставить README.md, но исключим остальные
+!README.md
+*.ico
+tests/
