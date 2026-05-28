@@ -1,0 +1,7 @@
+<!-- WorkTimeSync/templates/analyst_dashboard.html -->
+{% extends "base.html" %}
+{% block content %}
+<h2>Панель аналитика</h2>
+<div class="mt-4">{{ graph_html | safe }}</div>
+<a href="/hr/export" class="btn btn-primary mt-3">Экспорт в Excel</a>
+{% endblock %}

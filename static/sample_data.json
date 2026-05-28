@@ -1,0 +1,26 @@
+[
+  {
+    "username": "ivan",
+    "project_name": "WorkTime Sync",
+    "hours": 4.5,
+    "date": "2026-05-28"
+  },
+  {
+    "username": "maria",
+    "project_name": "WorkTime Sync",
+    "hours": 3.0,
+    "date": "2026-05-28"
+  },
+  {
+    "username": "alex",
+    "project_name": "WorkTime Sync",
+    "hours": 6.0,
+    "date": "2026-05-28"
+  },
+  {
+    "username": "olga",
+    "project_name": "WorkTime Sync",
+    "hours": 7.5,
+    "date": "2026-05-28"
+  }
+]

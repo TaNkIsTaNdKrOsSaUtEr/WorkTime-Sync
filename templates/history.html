@@ -1,0 +1,35 @@
+<!-- WorkTimeSync/templates/history.html -->
+{% extends "base.html" %}
+{% block content %}
+<h2>История изменений графиков</h2>
+
+<table class="table table-bordered">
+  <thead class="table-light">
+    <tr>
+      <th>Сотрудник</th>
+      <th>Дата изменения</th>
+      <th>Начало</th>
+      <th>Конец</th>
+      <th>Дни</th>
+      <th>Часовой пояс</th>
+      <th>Формат</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for h in history %}
+    <tr>
+      <td>{{ users[h.user_id].full_name if h.user_id in users else '??' }}</td>
+      <td>{{ h.changed_at }}</td>
+      <td>{{ h.work_start }}</td>
+      <td>{{ h.work_end }}</td>
+      <td>{{ h.work_days }}</td>
+      <td>{{ h.timezone }}</td>
+      <td>{{ h.work_format }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<a href="/dashboard/manager" class="btn btn-secondary">Назад</a>
+{% endblock %}
+

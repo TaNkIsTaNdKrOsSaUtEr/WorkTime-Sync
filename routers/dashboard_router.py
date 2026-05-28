@@ -14,6 +14,7 @@ from models import User, WorkEntry, RoleEnum, Project
 from auth import get_current_active_user
 from fastapi.templating import Jinja2Templates
 from services.analytics import calculate_metrics
+from services.cache import get_cache, set_cache
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -26,6 +27,10 @@ def dashboard_redirect(request: Request, current_user: User = Depends(get_curren
         return RedirectResponse(url="/dashboard/manager")
     elif current_user.role == RoleEnum.hr:
         return RedirectResponse(url="/hr/")  # сразу на HR-дашборд
+    elif current_user.role == RoleEnum.project_manager:
+        return RedirectResponse(url="/dashboard/pm")
+    elif current_user.role == RoleEnum.analyst:
+        return RedirectResponse(url="/dashboard/analyst")
     else:
         return RedirectResponse(url="/auth/login")
 
@@ -55,47 +60,55 @@ def manager_dashboard(request: Request, db: Session = Depends(get_db),
                       current_user: User = Depends(get_current_active_user)):
     if current_user.role != RoleEnum.manager:
         return RedirectResponse(url="/dashboard/")
-    team_members = db.query(User).filter(User.team_id == current_user.team_id).all()
-    end = date.today()
-    start = end - timedelta(days=7)
-    stats = []
-    for member in team_members:
-        total = db.query(func.sum(WorkEntry.hours)).filter(
-            WorkEntry.user_id == member.id,
-            WorkEntry.date.between(start, end)
-        ).scalar() or 0
-        avg_daily = total / 7.0
-        if avg_daily > 8: color = "red"
-        elif avg_daily < 4: color = "yellow"
-        else: color = "green"
-        metrics = calculate_metrics(db, member)
-        stats.append({
-            "user_id": member.id,          # нужно для формы
-            "name": member.full_name,
-            "total_hours": total,
-            "avg_daily": round(avg_daily,1),
-            "color": color,
-            "days_since_update": metrics["days_since_update"],
-            "Ai": metrics["Ai"],
-            "Ci": metrics["Ci"],
-            "Li": metrics["Li"],
-            "Ri": metrics["Ri"],
-            "recommendations": generate_simple_recommendations(metrics)
-        })
-    fig = px.bar([{"Сотрудник": s["name"], "Сред. часов в день": s["avg_daily"]} for s in stats],
-                 x="Сотрудник", y="Сред. часов в день", color="Сотрудник", title="Загрузка команды за неделю")
-    graph_html = fig.to_html(full_html=False) if stats else "<p>Нет данных</p>"
-    projects = db.query(Project).all()  # список проектов для формы
 
-    # === ДОБАВЛЕНО: последние записи команды для удаления ===
-    member_ids = [m.id for m in team_members]
-    team_entries = db.query(WorkEntry).filter(
-        WorkEntry.user_id.in_(member_ids)
-    ).order_by(WorkEntry.date.desc()).limit(30).all()
+    # Ключ кэша: уникальный для команды
+    cache_key = f"manager_dashboard_team_{current_user.team_id}"
+    cached_data = get_cache(cache_key)
+    if cached_data:
+        stats, graph_html, projects, team_entries = cached_data
+    else:
+        team_members = db.query(User).filter(User.team_id == current_user.team_id).all()
+        end = date.today()
+        start = end - timedelta(days=7)
+        stats = []
+        for member in team_members:
+            total = db.query(func.sum(WorkEntry.hours)).filter(
+                WorkEntry.user_id == member.id,
+                WorkEntry.date.between(start, end)
+            ).scalar() or 0
+            avg_daily = total / 7.0
+            if avg_daily > 8: color = "red"
+            elif avg_daily < 4: color = "yellow"
+            else: color = "green"
+            metrics = calculate_metrics(db, member)
+            stats.append({
+                "user_id": member.id,
+                "name": member.full_name,
+                "total_hours": total,
+                "avg_daily": round(avg_daily,1),
+                "color": color,
+                "days_since_update": metrics["days_since_update"],
+                "Ai": metrics["Ai"],
+                "Ci": metrics["Ci"],
+                "Li": metrics["Li"],
+                "Ri": metrics["Ri"],
+                "recommendations": generate_simple_recommendations(metrics)
+            })
+        fig = px.bar([{"Сотрудник": s["name"], "Сред. часов в день": s["avg_daily"]} for s in stats],
+                     x="Сотрудник", y="Сред. часов в день", color="Сотрудник",
+                     title="Загрузка команды за неделю")
+        graph_html = fig.to_html(full_html=False) if stats else "<p>Нет данных</p>"
+        projects = db.query(Project).all()
+        member_ids = [m.id for m in team_members]
+        team_entries = db.query(WorkEntry).filter(
+            WorkEntry.user_id.in_(member_ids)
+        ).order_by(WorkEntry.date.desc()).limit(30).all()
+        # Сохраняем в кэш на 60 секунд
+        set_cache(cache_key, (stats, graph_html, projects, team_entries), ttl=60)
 
     return templates.TemplateResponse("manager_dashboard.html", {
-        "request": request, "user": current_user, "team_stats": stats, "graph_html": graph_html,
-        "projects": projects, "team_entries": team_entries
+        "request": request, "user": current_user, "team_stats": stats,
+        "graph_html": graph_html, "projects": projects, "team_entries": team_entries
     })
 
 def generate_simple_recommendations(metrics: dict) -> list:
@@ -113,7 +126,7 @@ def generate_simple_recommendations(metrics: dict) -> list:
 @router.get("/team-availability", response_class=HTMLResponse)
 def team_availability(request: Request, db: Session = Depends(get_db),
                       current_user: User = Depends(get_current_active_user)):
-    if current_user.role != RoleEnum.manager:
+    if current_user.role not in [RoleEnum.manager, RoleEnum.project_manager]:
         return RedirectResponse(url="/dashboard/")
     team_members = db.query(User).filter(User.team_id == current_user.team_id).all()
     members_data = []
@@ -137,3 +150,48 @@ def team_availability(request: Request, db: Session = Depends(get_db),
     })
 
     
+@router.get("/pm", response_class=HTMLResponse)
+def pm_dashboard(request: Request, db: Session = Depends(get_db),
+                 current_user: User = Depends(get_current_active_user)):
+    # Проектный менеджер видит загрузку команды и карту доступности
+    if current_user.role != RoleEnum.project_manager:
+        return RedirectResponse(url="/dashboard/")
+    team_members = db.query(User).filter(User.team_id == current_user.team_id).all()
+    end = date.today()
+    start = end - timedelta(days=7)
+    stats = []
+    for member in team_members:
+        total = db.query(func.sum(WorkEntry.hours)).filter(
+            WorkEntry.user_id == member.id,
+            WorkEntry.date.between(start, end)
+        ).scalar() or 0
+        avg_daily = total / 7.0
+        if avg_daily > 8: color = "red"
+        elif avg_daily < 4: color = "yellow"
+        else: color = "green"
+        stats.append({"name": member.full_name, "total_hours": total, "avg_daily": round(avg_daily,1), "color": color})
+    fig = px.bar([{"Сотрудник": s["name"], "Сред. часов в день": s["avg_daily"]} for s in stats],
+                 x="Сотрудник", y="Сред. часов в день", color="Сотрудник", title="Загрузка команды за неделю")
+    graph_html = fig.to_html(full_html=False) if stats else "<p>Нет данных</p>"
+    return templates.TemplateResponse("pm_dashboard.html", {
+        "request": request, "user": current_user, "team_stats": stats, "graph_html": graph_html
+    })
+
+@router.get("/analyst", response_class=HTMLResponse)
+def analyst_dashboard(request: Request, db: Session = Depends(get_db),
+                      current_user: User = Depends(get_current_active_user)):
+    if current_user.role != RoleEnum.analyst:
+        return RedirectResponse(url="/dashboard/")
+    # Аналитик видит общую загрузку компании + экспорт
+    all_entries = db.query(WorkEntry.date, func.sum(WorkEntry.hours)).group_by(WorkEntry.date).all()
+    df = pd.DataFrame(all_entries, columns=["date", "hours"])
+    if not df.empty:
+        fig = px.line(df, x="date", y="hours", title="Общая загрузка компании")
+        graph_html = fig.to_html(full_html=False)
+    else:
+        graph_html = "<p>Нет данных</p>"
+    return templates.TemplateResponse("analyst_dashboard.html", {
+        "request": request, "graph_html": graph_html
+    })
+
+

@@ -14,6 +14,7 @@ from models import User, WorkEntry, RoleEnum  # ORM-модели и перечи
 from auth import get_current_active_user  # зависимость: получение текущего пользователя
 from fastapi.templating import Jinja2Templates  # шаблонизатор Jinja2
 from services.export import generate_excel_report  # функция из сервисного слоя, генерирующая Excel
+from services.pdf_export import generate_pdf_report
 
 router = APIRouter()  # создаём экземпляр маршрутизатора
 templates = Jinja2Templates(directory="templates")  # указываем папку с HTML-шаблонами
@@ -44,4 +45,15 @@ def export_excel(request: Request, db: Session = Depends(get_db),  # объек�
     return StreamingResponse(stream, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",  # отдаём файл через StreamingResponse
                              headers={"Content-Disposition": "attachment; filename=worktime_report.xlsx"})  # заголовок для скачивания файла с именем
 
+@router.get("/export/pdf")
+def export_pdf(request: Request, db: Session = Depends(get_db),
+               current_user: User = Depends(get_current_active_user)):
+    if current_user.role not in [RoleEnum.hr, RoleEnum.manager]:
+        raise HTTPException(403, "Недостаточно прав")
+    # Если руководитель, берём его команду, иначе всю компанию
+    team_id = current_user.team_id if current_user.role == RoleEnum.manager else None
+    stream = generate_pdf_report(db, team_id)
+    return StreamingResponse(stream, media_type="application/pdf",
+                             headers={"Content-Disposition": "attachment; filename=worktime_report.pdf"})
+                             
                              

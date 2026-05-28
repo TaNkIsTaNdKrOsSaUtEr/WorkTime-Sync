@@ -1,0 +1,28 @@
+<!-- WorkTimeSync/templates/chat.html -->
+{% extends "base.html" %}
+{% block content %}
+<h2>AI-ассистент</h2>
+<p class="text-muted">Спросите о загрузке, доступности, рекомендациях или конкретном сотруднике.</p>
+
+<form method="post" action="/chat" class="mb-3">
+  <div class="input-group">
+    <input type="text" name="message" class="form-control" placeholder="Ваш вопрос..." required>
+    <button type="submit" class="btn btn-primary">Отправить</button>
+  </div>
+</form>
+
+{% if message %}
+<div class="card mb-3">
+  <div class="card-header">Вы</div>
+  <div class="card-body">{{ message }}</div>
+</div>
+{% endif %}
+
+{% if answer %}
+<div class="card bg-light">
+  <div class="card-header">Ассистент</div>
+  <div class="card-body" style="white-space: pre-wrap;">{{ answer }}</div>
+</div>
+{% endif %}
+{% endblock %}
+

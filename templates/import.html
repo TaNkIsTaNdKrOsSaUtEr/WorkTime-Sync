@@ -1,0 +1,42 @@
+<!-- WorkTimeSync/templates/import.html -->
+{% extends "base.html" %}
+{% block content %}
+<h2>Импорт данных из CSV / JSON</h2>
+
+<div class="alert alert-info">
+  Ожидаемые колонки (CSV) или поля (JSON):<br>
+  <code>username</code>, <code>project_name</code> (необязательно), <code>hours</code>, <code>date</code> (ГГГГ-ММ-ДД).<br>
+  Примеры файлов: <a href="/static/sample_data.csv" target="_blank">sample_data.csv</a>, 
+  <a href="/static/sample_data.json" target="_blank">sample_data.json</a>
+</div>
+
+<form method="post" enctype="multipart/form-data">
+  <div class="mb-3">
+    <label for="file" class="form-label">Выберите файл</label>
+    <input type="file" class="form-control" id="file" name="file" accept=".csv,.json" required>
+  </div>
+  <button type="submit" class="btn btn-primary">Загрузить</button>
+</form>
+
+{% if imported is not none %}
+<div class="mt-3">
+  <h4>Результат импорта</h4>
+  <p>Успешно добавлено записей: <strong>{{ imported }}</strong></p>
+  {% if errors %}
+    <div class="alert alert-warning">
+      Ошибки:
+      <ul>
+        {% for err in errors %}
+        <li>{{ err }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+{% endblock %}
+

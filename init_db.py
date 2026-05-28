@@ -28,7 +28,20 @@ if not db.query(Team).first():
                    work_start=time(9,0), work_end=time(18,0),
                    timezone="Europe/Moscow", work_format=WorkFormat.office, last_updated=date.today())
     db.add(manager)
+         # Проектный менеджер
+    pm = User(full_name="Виктор ПМ", username="pm", hashed_password=get_password_hash("123"),
+              role=RoleEnum.project_manager, team_id=team.id,
+              work_start=time(9,0), work_end=time(18,0),
+              timezone="Europe/Moscow", work_format=WorkFormat.hybrid, last_updated=date.today())
+    db.add(pm)
 
+    # Аналитик
+    analyst = User(full_name="Инна Аналитик", username="analyst", hashed_password=get_password_hash("123"),
+                   role=RoleEnum.analyst, team_id=team.id,
+                   work_start=time(9,0), work_end=time(18,0),
+                   timezone="Europe/Moscow", work_format=WorkFormat.office, last_updated=date.today())
+    db.add(analyst)
+    
     # Сотрудники (8 человек, включая старых)
     employees = [
         User(full_name="Иван Сотрудник", username="ivan", hashed_password=get_password_hash("123"),

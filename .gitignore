@@ -13,3 +13,8 @@ worktime.db
 *.log
 .DS_Store
 Thumbs.db
+
+# Test artifacts
+test.db
+test_report.pdf
+*.drawio

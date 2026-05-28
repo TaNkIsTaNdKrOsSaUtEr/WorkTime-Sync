@@ -1,0 +1,27 @@
+<!-- WorkTimeSync/templates/pm_dashboard.html -->
+{% extends "base.html" %}
+{% block content %}
+<h2>Панель проектного менеджера</h2>
+<div class="table-responsive">
+  <table class="table table-bordered">
+    <thead><tr><th>Сотрудник</th><th>Часов за неделю</th><th>Сред./день</th><th>Статус</th></tr></thead>
+    <tbody>
+      {% for s in team_stats %}
+      <tr>
+        <td>{{ s.name }}</td>
+        <td>{{ s.total_hours }}</td>
+        <td>{{ s.avg_daily }}</td>
+        <td>
+          {% if s.color == 'red' %}<span class="badge bg-danger">Перегруз</span>
+          {% elif s.color == 'yellow' %}<span class="badge bg-warning text-dark">Недозагруз</span>
+          {% else %}<span class="badge bg-success">Норма</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<div class="mt-4">{{ graph_html | safe }}</div>
+<a href="/dashboard/team-availability" class="btn btn-outline-primary mt-3">Командная карта доступности</a>
+{% endblock %}
+

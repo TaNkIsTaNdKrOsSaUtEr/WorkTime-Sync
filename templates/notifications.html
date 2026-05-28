@@ -1,0 +1,23 @@
+<!-- WorkTimeSync/templates/notifications.html -->
+{% extends "base.html" %}
+{% block content %}
+<h2>Уведомления</h2>
+{% if notifications %}
+  <ul class="list-group">
+    {% for n in notifications %}
+    <li class="list-group-item d-flex justify-content-between align-items-center {% if not n.is_read %}list-group-item-primary{% endif %}">
+      <div>
+        {{ n.message }}
+        {% if n.link %}<a href="{{ n.link }}" class="btn btn-sm btn-link">Перейти</a>{% endif %}
+        <small class="text-muted d-block">{{ n.created_at }}</small>
+      </div>
+      {% if not n.is_read %}
+        <a href="/notifications/{{ n.id }}/read" class="btn btn-sm btn-outline-success">Отметить прочитанным</a>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>Нет уведомлений.</p>
+{% endif %}
+{% endblock %}

@@ -12,11 +12,11 @@
       <div class="row g-3">
         <div class="col-md-4">
           <label class="form-label">Начало рабочего дня</label>
-          <input type="time" name="work_start" class="form-control" value="{{ user.work_start }}">
+          <input type="time" name="work_start" class="form-control" value="{{ user.work_start or '09:00' }}">
         </div>
         <div class="col-md-4">
           <label class="form-label">Конец рабочего дня</label>
-          <input type="time" name="work_end" class="form-control" value="{{ user.work_end }}">
+          <input type="time" name="work_end" class="form-control" value="{{ user.work_end or '18:00' }}">
         </div>
         <div class="col-md-4">
           <label class="form-label">Дни работы (через запятую, 1=пн)</label>

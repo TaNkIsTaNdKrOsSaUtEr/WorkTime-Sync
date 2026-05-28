@@ -2,15 +2,18 @@
 """
 Модели SQLAlchemy для всех сущностей.
 """
-from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey, Enum as SaEnum, Time
+from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey, Enum as SaEnum, Time, Boolean, func 
 from sqlalchemy.orm import relationship
 from database import Base
 import enum
+from sqlalchemy import func
 
 class RoleEnum(str, enum.Enum):
     employee = "employee"
     manager = "manager"
     hr = "hr"
+    project_manager = "project_manager"   # проектный менеджер
+    analyst = "analyst"                   # аналитик
 
 class AbsenceType(str, enum.Enum):
     vacation = "vacation"
@@ -53,6 +56,9 @@ class User(Base):
     work_entries = relationship("WorkEntry", back_populates="user")
     absence_requests = relationship("AbsenceRequest", back_populates="user")
     calendar_events = relationship("CalendarEvent", back_populates="user")
+    notifications = relationship("Notification", back_populates="user")
+    graph_history = relationship("GraphHistory", back_populates="user")
+
 
 class Project(Base):
     __tablename__ = "projects"
@@ -102,4 +108,26 @@ class CalendarEvent(Base):
     event_type = Column(String, default="meeting")     # тип: meeting, task, etc.
     user = relationship("User", back_populates="calendar_events")
 
-    
+class Notification(Base):
+    """Уведомления для пользователей."""
+    __tablename__ = "notifications"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)  # кому предназначено
+    message = Column(String, nullable=False)          # текст уведомления
+    created_at = Column(Date, default=func.now())     # дата создания
+    is_read = Column(Boolean, default=False)          # прочитано или нет
+    link = Column(String, nullable=True)              # ссылка для перехода (например, /ml/recommendations)
+    user = relationship("User", back_populates="notifications")
+
+class GraphHistory(Base):
+    """История изменений рабочего графика сотрудника."""
+    __tablename__ = "graph_history"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    changed_at = Column(Date, default=func.now())         # дата изменения
+    work_start = Column(Time, nullable=True)              # старые значения (после изменения)
+    work_end = Column(Time, nullable=True)
+    work_days = Column(String, nullable=True)
+    timezone = Column(String, nullable=True)
+    work_format = Column(String, nullable=True)
+    user = relationship("User", back_populates="graph_history")

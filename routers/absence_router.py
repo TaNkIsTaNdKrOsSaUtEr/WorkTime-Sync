@@ -63,6 +63,12 @@ def create_absence(request: Request,  # объект запроса
     db.add(new_req)  # добавляем заявку в сессию
     db.commit()  # сохраняем в БД
     return RedirectResponse(url="/absences/", status_code=303)  # редирект на список заявок (303 See Other)
+    manager = db.query(User).filter(User.team_id == current_user.team_id, User.role == "manager").first()
+    if manager:
+        create_notification(db, manager, f"Сотрудник {current_user.full_name} подал заявку на {type_enum.value}", "/absences/")
+
+
+
 
 @router.post("/{absence_id}/approve")  # POST-запрос на /absences/{id}/approve – утвердить заявку
 def approve_absence(absence_id: int, db: Session = Depends(get_db),  # ID заявки из пути, сессия БД

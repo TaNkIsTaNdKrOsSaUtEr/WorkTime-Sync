@@ -1,0 +1,48 @@
+<!-- WorkTimeSync/templates/roadmap.html -->
+{% extends "base.html" %}
+{% block content %}
+<h2>Дорожная карта актуализации</h2>
+<p class="text-muted">Приоритетный план действий для команды на основе текущих метрик.</p>
+
+<table class="table table-bordered">
+  <thead class="table-light">
+    <tr>
+      <th>Сотрудник</th>
+      <th>Рекомендуемые действия</th>
+      <th>Срочность</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for t in tasks %}
+    <tr>
+      <td>{{ t.full_name }}</td>
+      <td>
+        <ul class="mb-0">
+          {% for action in t.actions %}
+          <li>
+            {{ action.action }}
+            {% if action.reason %}<br><small class="text-muted">{{ action.reason }}</small>{% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      </td>
+      <td>
+        {% set max_priority = t.actions | map(attribute='priority') | reject('eq','none') | first %}
+        {% if max_priority == 'high' %}
+          <span class="badge bg-danger">Высокая</span>
+        {% elif max_priority == 'medium' %}
+          <span class="badge bg-warning text-dark">Средняя</span>
+        {% elif max_priority == 'low' %}
+          <span class="badge bg-success">Низкая</span>
+        {% else %}
+          <span class="badge bg-secondary">Нет</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<a href="/dashboard/manager" class="btn btn-secondary">Назад к дашборду</a>
+{% endblock %}
+
