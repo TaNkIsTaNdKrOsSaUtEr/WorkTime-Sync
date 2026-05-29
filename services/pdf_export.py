@@ -1,6 +1,6 @@
 # WorkTimeSync/services/pdf_export.py
 """
-Сервис экспорта отчёта в PDF.
+Сервис экспорта отчёта в PDF (устойчивый к отсутствию кириллических шрифтов).
 """
 from io import BytesIO
 from reportlab.lib.pagesizes import A4
@@ -16,38 +16,35 @@ from datetime import date, timedelta
 import os
 
 # === Регистрация Unicode-шрифта ===
-# Вариант 1: системный DejaVuSans (обычно есть в Linux)
-font_path = "/usr/share/fonts/TTF/DejaVuSans.ttf"
-if not os.path.exists(font_path):
-    # Вариант 2: попробуем другой путь
-    font_path = "/usr/share/fonts/dejavu/DejaVuSans.ttf"
-if not os.path.exists(font_path):
-    # Вариант 3: шрифт, положенный рядом в static/
-    font_path = "static/DejaVuSans.ttf"
+FONT_NAME = 'Helvetica'  # fallback
+FONT_AVAILABLE = False
+font_paths = [
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # Ubuntu/Debian
+    "/usr/share/fonts/TTF/DejaVuSans.ttf",              # Arch/другие
+    "static/DejaVuSans.ttf"
+]
+for path in font_paths:
+    if os.path.exists(path):
+        pdfmetrics.registerFont(TTFont('DejaVuSans', path))
+        FONT_NAME = 'DejaVuSans'
+        FONT_AVAILABLE = True
+        break
 
-if os.path.exists(font_path):
-    pdfmetrics.registerFont(TTFont('DejaVuSans', font_path))
-else:
-    raise FileNotFoundError("Не найден шрифт DejaVuSans. Установите его или положите в static/")
-
-# Создаём стили, основанные на DejaVuSans
 styles = getSampleStyleSheet()
-for style in styles.byName.values():
-    style.fontName = 'DejaVuSans'
-    # Если стиль содержит параграфы, обновим его (необязательно, но для надёжности)
-    if hasattr(style, 'fontName'):
-        style.fontName = 'DejaVuSans'
+if FONT_AVAILABLE:
+    for style in styles.byName.values():
+        style.fontName = FONT_NAME
 
 def generate_pdf_report(db: Session, team_id: int | None = None) -> BytesIO:
-    """Генерирует PDF с аналитикой по команде (или всей компании)."""
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4)
     story = []
 
     # Заголовок
     title_style = styles['Title']
-    title_style.fontName = 'DejaVuSans'
-    title = Paragraph("WorkTime Sync – Отчёт о загрузке", title_style)
+    title_style.fontName = FONT_NAME
+    title_text = "WorkTime Sync – Отчёт о загрузке" if FONT_AVAILABLE else "WorkTime Sync – Load Report"
+    title = Paragraph(title_text, title_style)
     story.append(title)
     story.append(Spacer(1, 12))
 
@@ -60,19 +57,29 @@ def generate_pdf_report(db: Session, team_id: int | None = None) -> BytesIO:
         team_members = db.query(User).filter(User.team_id == team_id).all()
 
     # Таблица
-    data = [["Сотрудник", "Часов за неделю", "Сред./день", "Статус"]]
+    headers = ["Сотрудник", "Часов за неделю", "Сред./день", "Статус"] if FONT_AVAILABLE else \
+              ["Employee", "Hours/week", "Avg/day", "Status"]
+    data = [headers]
     for member in team_members:
         total = db.query(func.sum(WorkEntry.hours)).filter(
             WorkEntry.user_id == member.id,
             WorkEntry.date.between(start, end)
         ).scalar() or 0
         avg = total / 7.0
-        if avg > 8:
-            status = "Перегруз"
-        elif avg < 4:
-            status = "Недозагруз"
+        if FONT_AVAILABLE:
+            if avg > 8:
+                status = "Перегруз"
+            elif avg < 4:
+                status = "Недозагруз"
+            else:
+                status = "Норма"
         else:
-            status = "Норма"
+            if avg > 8:
+                status = "Overload"
+            elif avg < 4:
+                status = "Underload"
+            else:
+                status = "Normal"
         data.append([member.full_name, str(total), f"{avg:.1f}", status])
 
     table = Table(data)
@@ -80,7 +87,7 @@ def generate_pdf_report(db: Session, team_id: int | None = None) -> BytesIO:
         ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, -1), 'DejaVuSans'),   # <-- шрифт для всех ячеек
+        ('FONTNAME', (0, 0), (-1, -1), FONT_NAME),
         ('FONTSIZE', (0, 0), (-1, 0), 12),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
         ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
