@@ -23,6 +23,11 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Установка системных зависимостей (шрифты)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fonts-dejavu-core
+
       - name: Установка зависимостей
         run: |
           pip install --upgrade pip
@@ -31,12 +36,11 @@ jobs:
 
       - name: Запуск тестов
         run: |
-          pytest tests/ -v --tb=short --ignore=tests/test_api.py  # сервисные тесты
-          # Для API-тестов нужна база, поэтому запускаем их отдельно с подготовкой
+          pytest tests/ -v --tb=short --ignore=tests/test_api.py
           python init_db.py
           python fill_demo_data.py
           pytest tests/test_api.py -v --tb=short
-
+          
   docker-build:
     needs: test
     runs-on: ubuntu-latest
